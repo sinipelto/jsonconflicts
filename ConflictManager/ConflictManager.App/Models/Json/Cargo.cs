@@ -2,7 +2,7 @@
 
 namespace ConflictManager.App.Models.Json
 {
-    public class Cargo
+    internal class Cargo
     {
         public string Type { get; set; }
 
@@ -13,7 +13,7 @@ namespace ConflictManager.App.Models.Json
         public List<Container> Containers { get; set; }
     }
 
-    public class Container
+    internal class Container
     {
         public string Contents { get; set; }
 

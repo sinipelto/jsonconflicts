@@ -1,6 +1,6 @@
 ﻿namespace ConflictManager.App.Models.Json
 {
-    public class CargoShip : Ship
+    internal class CargoShip : Ship
     {
         public Cargo Cargo { get; set; }
 

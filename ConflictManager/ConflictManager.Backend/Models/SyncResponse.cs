@@ -1,13 +1,7 @@
-﻿using ConflictManager.App.Models.Json;
-
-namespace ConflictManager.Backend.Models
+﻿namespace ConflictManager.Backend.Models
 {
-    public class SyncResponse
+    internal class SyncResponse : ApiResponse
     {
-        public int StatusCode => (int)Status;
-
-        public Status Status { get; set; }
-
         public DataModel IncomingModel { get; set; }
 
         public DataModel CurrentModel { get; set; }

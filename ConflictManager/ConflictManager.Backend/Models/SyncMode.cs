@@ -1,4 +1,6 @@
-﻿namespace ConflictManager.Backend.Models
+﻿using Newtonsoft.Json;
+
+namespace ConflictManager.Backend.Models
 {
     public enum SyncMode
     {

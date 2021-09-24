@@ -1,11 +1,11 @@
-﻿using ConflictManager.App.Models.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace ConflictManager.App.Services
 {
-    public static class RandomJsonService
+    internal static class RandomJsonService
     {
         private static readonly Random Random = new();
 
@@ -33,7 +33,7 @@ namespace ConflictManager.App.Services
 
         private static bool IsObj => Random.NextDouble() <= 0.5; // 50% chance
 
-        public static DataModel GenerateModel()
+        public static string GenerateModel()
         {
             var data = "{";
 
@@ -64,7 +64,8 @@ namespace ConflictManager.App.Services
                             data += ",";
                         }
 
-                        data += "\"" + Properties[idx] + "\":" + (IsInt ? Random.Next(0, 99999) : "\"" + RandomString(Random.Next(3, 15)) + "\"");
+                        data += "\"" + Properties[idx] + "\":" +
+                                (IsInt ? Random.Next(0, 99999) : "\"" + RandomString(Random.Next(3, 15)) + "\"");
 
                         firstX = false;
                     }
@@ -105,13 +106,13 @@ namespace ConflictManager.App.Services
 
             data += "}";
 
-            return new DataModel
-            {
-                Created = DateTime.UtcNow,
-                Modified = DateTime.UtcNow,
-                Version = Random.Next(0, 10),
-                Data = data,
-            };
+            dynamic dataModel = "";
+            dataModel["Created"] = DateTime.UtcNow;
+            dataModel["Modified"] = DateTime.UtcNow;
+            dataModel["Version"] = Random.Next(0, 10);
+            dataModel["Data"] = data; ;
+
+            return JsonConvert.SerializeObject(dataModel);
         }
     }
 }

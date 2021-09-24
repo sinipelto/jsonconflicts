@@ -1,8 +1,9 @@
 ﻿using ConflictManager.App.Models.Json;
+using ConflictManager.App.Services;
 using ConflictManager.Backend;
+using ConflictManager.Backend.Models;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 
 namespace ConflictManager.App
 {
@@ -10,27 +11,83 @@ namespace ConflictManager.App
     {
         private static void Main()
         {
+            // The application starts
             Console.WriteLine("##### START #####");
 
-            var module = BackendApi.GetModule(1);
+            Scenario1();
+        }
+
+        private static void Scenario1()
+        {
+            // User sets the app to offline mode
+            var syncRespStr = BackendApi.Sync(SyncMode.OnlineToOffline);
+            dynamic syncResp = JsonConvert.DeserializeObject(syncRespStr);
 
             Console.WriteLine("\r\n");
 
-            Console.WriteLine($"RESP: {respStr}");
+            // Ensure sync was ok (sync to local should never fail except due to errors)
+            Console.WriteLine(syncResp.Status == "OK"
+                ? "SYNC (ONLINE -> OFFLINE) OK."
+                : $"FAILED TO SYNC (ONLINE -> OFFLINE): STATUS: {syncResp.Status}");
 
-            dynamic resp = JsonConvert.DeserializeObject(respStr);
+            // Using module ID 1
+            const int moduleId = 1;
 
-            if (resp["Status"] == "OK")
+            // User loads the specific module
+            // Which data is passed to the loaded module
+            var moduleDataRespStr = BackendApi.GetModuleData(moduleId);
+            dynamic moduleDataResp = JsonConvert.DeserializeObject(moduleDataRespStr);
+            var moduleData = JsonConvert.DeserializeObject(moduleDataResp.Response.ToString());
+
+            // Instantiate the module
+            var module = new ShipModule(moduleId);
+            module.SetData(moduleData.Data.ToString());
+
+            // Module internally (User) tampers with its data - makes a change
+            module.DoSomethingWithTheData();
+
+            // User saves the changes to db:
+            var changedData = module.GetData();
+
+            // Data model formed from the received data from the module
+            var changedModel = new DataModel
             {
-                Console.WriteLine("STATUS OK - NO CONFLICTS");
-                return;
+                ModuleId = moduleData.ModuleId,
+                Data = changedData,
+            };
+
+            // Serialized
+            var changedModelStr = JsonConvert.SerializeObject(changedModel);
+
+            // Data Stored in the backend
+            var storeRespStr = BackendApi.InsertModule(changedModelStr);
+            dynamic storeResp = JsonConvert.DeserializeObject(storeRespStr);
+
+            Console.WriteLine("\r\n");
+
+            Console.WriteLine(storeResp.Status != "OK"
+                ? $"ERROR: FAILED to store changed model: STATUS: {storeResp.Status} RESP: {storeResp.Response}"
+                : "MODEL STORED TO DB OK.");
+
+            Console.WriteLine("\r\n");
+
+            // User decides to go back online
+            // Sync is called
+            var backRespStr = BackendApi.Sync(SyncMode.OfflineToOnline);
+            dynamic backResp = JsonConvert.DeserializeObject(backRespStr);
+
+            Console.WriteLine("\r\n");
+
+            Console.WriteLine(backResp.Status == "OK"
+                ? "SYNC (OFFLINE -> ONLINE) OK. CHANGES SYNCED."
+                : $"FAILED TO SYNC (OFFLINE-> ONLINE): STATUS: {backResp.Status} {backResp.Response}");
+
+            if (backResp.Status != "CONFLICT")
+            {
+                Console.WriteLine($"UNKNOWN ERROR DETECTED: {backResp.Status} {backResp.Response}");
             }
 
-            Console.WriteLine("CONFLICTS FOUND");
-
-            dynamic conflictObj;
-
-            //conflictObj[""];
+            Console.WriteLine("CONFLICT DETECTED.");
 
             // TODO Resolve conflicts
 
@@ -39,12 +96,13 @@ namespace ConflictManager.App
 
             };
 
+            // Let the api know the conflict is resolved, and to use the resolved data as final
+        }
 
-
-            return;
-
-            var str1 = JsonConvert.SerializeObject(StaticDataService.eng1);
-            var str2 = JsonConvert.SerializeObject(StaticDataService.eng2);
+        private static void Test()
+        {
+            var str1 = JsonConvert.SerializeObject(StaticDataService.Eng1);
+            var str2 = JsonConvert.SerializeObject(StaticDataService.Eng2);
 
             Console.WriteLine("LEFT:\r\n");
             Console.WriteLine(str1);
@@ -63,118 +121,5 @@ namespace ConflictManager.App
 
             Console.WriteLine("\r\n");
         }
-
-        private static class StaticDataService
-        {
-            public static Engine eng1 => new()
-            {
-                Name = "Generic Engine 231",
-                MaxTemp = 99.85,
-                MinTemp = 3.22,
-                States = new List<string> { "Offline", "Online", "Restarting", "Charging" },
-            };
-
-            public static Engine eng2 => new()
-            {
-                Name = "Generic Engine 99",
-                MaxTemp = 99.85,
-                MinTemp = 5.38,
-                States = new List<string> { "Online", "Offline", "Restarting", "Charging" },
-            };
-
-            public static TurboEngine te => new()
-            {
-                Name = "Turbo Engine",
-                MaxTemp = 995.1,
-                MinTemp = 30.9,
-                AirFlow = 882,
-                States = new List<string> { "Offline", "Online", "Restarting", "Malfunction" },
-            };
-
-            public static DieselEngine de => new()
-            {
-                Name = "Diesel Engine",
-                MaxTemp = 95.19,
-                MinTemp = 10.91,
-                FuelLevel = 88.90,
-                FuelLevelMax = 100.00,
-                States = new List<string> { "Offline", "Online", "Refueling", "OutOfFuel" },
-            };
-
-            public static Company comp1 => new()
-            {
-                Name = "No Company",
-                Value = 0,
-                Location = null,
-                Owner = null,
-            };
-
-            public static Owner ow1 => new()
-            {
-                Name = "Firstname Lname",
-                Type = "Individual",
-                CompanyDetails = comp1,
-            };
-
-            public static Company cdet => new()
-            {
-                Name = "Some Company Co",
-                Value = 21398129,
-                Location = "Somewhere",
-                Owner = ow1,
-            };
-
-            public static Company cdet2 => new()
-            {
-                Name = "Some Another Company Co",
-                Value = 21398129,
-                Location = "Somewhere Else Street 1, Finland",
-                Owner = ow1,
-            };
-
-            public static Owner ow2 => new()
-            {
-                Name = "Some Owner Company",
-                Type = "Company",
-                CompanyDetails = cdet,
-            };
-
-            public static PassengerShip ship1 => new()
-            {
-                Name = "Test Ship 128",
-                Length = 60.15,
-                Engines = new List<Engine> { eng1, eng2, de },
-                Companions = null,
-                Owner = ow1,
-                PassengerCountMax = 572,
-                TransmissionCodes = new List<int> { 282, 123897, 21487, 161 }
-            };
-
-            public static Container cont => new()
-            {
-                Contents = "Laptops",
-                Weight = 5298.22,
-            };
-
-            public static Cargo carg => new()
-            {
-                TotalWeight = 99427.12,
-                WeightUnit = "Kilograms",
-                Type = "Consumer Electronics",
-                Containers = new List<Container> { cont }
-            };
-
-            public static CargoShip ship2 => new()
-            {
-                Name = "Test Ship 14",
-                Length = 53.3,
-                Engines = new List<Engine> { eng2, eng1, de },
-                Companions = new List<Ship> { ship1 },
-                Owner = ow2,
-                Cargo = carg,
-                ContainersCountLimit = 1339,
-            };
-        }
-
     }
 }

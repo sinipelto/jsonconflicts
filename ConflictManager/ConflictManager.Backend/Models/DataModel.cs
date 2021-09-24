@@ -1,10 +1,12 @@
 ﻿using System;
 
-namespace ConflictManager.App.Models.Json
+namespace ConflictManager.Backend.Models
 {
     public class DataModel
     {
-        public int? Id { get; set; }
+        public int? ModuleId { get; set; }
+
+        public int Hash { get; set; }
 
         public int Version { get; set; }
 

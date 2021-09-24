@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ConflictManager.Backend.Models
 {
-    public class DifferenceDetails
+    internal class DifferenceDetails
     {
         public List<string> ConflictingProperties { get; set; }
 

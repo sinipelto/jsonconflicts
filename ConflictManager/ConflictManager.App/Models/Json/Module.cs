@@ -1,15 +1,28 @@
-﻿using System;
+﻿using Newtonsoft.Json;
 
 namespace ConflictManager.App.Models.Json
 {
-    public class Module
+    public abstract class Module<T>
     {
-        public string Data { get; set; }
+        private readonly int _id;
 
-        public string DisplayData()
+        protected T Data { get; set; }
+
+        protected Module(int id)
         {
-            // TODO return
-            throw new NotImplementedException();
+            _id = id;
         }
+
+        public void SetData(string data)
+        {
+            Data = JsonConvert.DeserializeObject<T>(data);
+        }
+
+        public string GetData()
+        {
+            return Data == null ? null : JsonConvert.SerializeObject(Data);
+        }
+
+        public abstract void DoSomethingWithTheData();
     }
 }

@@ -2,7 +2,7 @@
 
 namespace ConflictManager.Backend.Models
 {
-    public class Conflict
+    internal class Conflict
     {
         public JToken Azure { get; set; }
 
