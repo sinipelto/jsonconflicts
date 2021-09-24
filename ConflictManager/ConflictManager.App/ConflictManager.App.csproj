@@ -6,10 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="JsonDiffPatch.Net" Version="2.3.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\ConflictManager.Backend\ConflictManager.Backend.csproj" />
   </ItemGroup>
 
