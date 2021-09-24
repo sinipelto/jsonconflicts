@@ -1,5 +1,5 @@
-﻿using ConflictManager.App.Models.Api;
-using ConflictManager.App.Models.Json;
+﻿using ConflictManager.App.Models.Json;
+using ConflictManager.Backend.Models;
 using JsonDiffPatchDotNet;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -10,7 +10,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
-namespace ConflictManager.App
+namespace ConflictManager.Backend
 {
     /// <summary>
     /// Simulates the connection to the backend.

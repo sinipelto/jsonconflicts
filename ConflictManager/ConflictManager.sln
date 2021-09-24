@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31624.102
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConflictManager.App", "ConflictManager.App\ConflictManager.App.csproj", "{4CAC2FF7-047E-43CF-8466-CE7312E7EAAF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConflictManager.App", "ConflictManager.App\ConflictManager.App.csproj", "{4CAC2FF7-047E-43CF-8466-CE7312E7EAAF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConflictManager.Backend", "ConflictManager.Backend\ConflictManager.Backend.csproj", "{AEE559A1-6019-4053-A042-F94BF4D49AFB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{4CAC2FF7-047E-43CF-8466-CE7312E7EAAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4CAC2FF7-047E-43CF-8466-CE7312E7EAAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4CAC2FF7-047E-43CF-8466-CE7312E7EAAF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AEE559A1-6019-4053-A042-F94BF4D49AFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AEE559A1-6019-4053-A042-F94BF4D49AFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AEE559A1-6019-4053-A042-F94BF4D49AFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AEE559A1-6019-4053-A042-F94BF4D49AFB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

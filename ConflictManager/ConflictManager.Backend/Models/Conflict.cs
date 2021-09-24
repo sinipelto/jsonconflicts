@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 
-namespace ConflictManager.App.Models.Api
+namespace ConflictManager.Backend.Models
 {
     public class Conflict
     {

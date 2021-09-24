@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 
-namespace ConflictManager.App.Models.Api
+namespace ConflictManager.Backend.Models
 {
     public class DifferenceDetails
     {

@@ -1,6 +1,6 @@
 ﻿using ConflictManager.App.Models.Json;
 
-namespace ConflictManager.App.Models.Api
+namespace ConflictManager.Backend.Models
 {
     public class SyncResponse
     {

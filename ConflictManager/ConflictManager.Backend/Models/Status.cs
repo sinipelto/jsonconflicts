@@ -1,4 +1,4 @@
-﻿namespace ConflictManager.App.Models.Api
+﻿namespace ConflictManager.Backend.Models
 {
     public enum Status
     {

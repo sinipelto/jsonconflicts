@@ -1,8 +1,8 @@
 ﻿using ConflictManager.App.Models.Json;
+using ConflictManager.Backend;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace ConflictManager.App
 {
@@ -13,10 +13,6 @@ namespace ConflictManager.App
             Console.WriteLine("##### START #####");
 
             var module = BackendApi.GetModule(1);
-
-            var modelStr = JsonConvert.SerializeObject(model);
-
-            var respStr = BackendApi.Sync(modelStr);
 
             Console.WriteLine("\r\n");
 
@@ -34,14 +30,16 @@ namespace ConflictManager.App
 
             dynamic conflictObj;
 
-            conflictObj[""]
+            //conflictObj[""];
 
             // TODO Resolve conflicts
 
-            var resolved = new DataModel
+            var resolvedModel = new DataModel
             {
 
-            }
+            };
+
+
 
             return;
 
