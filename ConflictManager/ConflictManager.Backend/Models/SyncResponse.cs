@@ -2,10 +2,12 @@
 {
     internal class SyncResponse : ApiResponse
     {
-        public DataModel IncomingModel { get; set; }
+        public string IncomingModel { get; set; }
 
-        public DataModel CurrentModel { get; set; }
+        public string OriginalModel { get; set; }
 
-        public DifferenceDetails DifferenceDetails { get; set; }
+        public string RawDiff { get; set; }
+
+        //public DifferenceDetails DifferenceDetails { get; set; }
     }
 }

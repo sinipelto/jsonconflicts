@@ -1,5 +1,6 @@
 ﻿using ConflictManager.Backend.Models;
 using JsonDiffPatchDotNet;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -18,7 +19,7 @@ namespace ConflictManager.Backend.Services
             var resp = new SyncResponse
             {
                 Status = Status.OK,
-                IncomingModel = incomingModel,
+                IncomingModel = incomingModel.ToString(), // TODO BROKEN
             };
 
             if (remoteModel == null)
@@ -27,7 +28,7 @@ namespace ConflictManager.Backend.Services
                 return resp;
             }
 
-            resp.CurrentModel = remoteModel;
+            resp.OriginalModel = remoteModel.ToString(); // TODO BROKEN
 
             // Check the difference between the azure and incoming model datas
             var diff = CompareData(remoteModel.Data, incomingModel.Data);
@@ -39,10 +40,33 @@ namespace ConflictManager.Backend.Services
                 return resp;
             }
 
+            // No conflicts - changes have occurred only locally
+            if (diff.Conflicts.Count <= 0 && diff.AzureOnlyProperties.Count <= 0)
+            {
+                return resp;
+            }
+
             resp.Status = Status.CONFLICT;
-            resp.DifferenceDetails = diff;
+            //resp.DifferenceDetails = diff; // TODO BROKEN
 
             return resp;
+        }
+
+        public static string GetEffDiff(string localData, string remoteData)
+        {
+            var tool = new JsonDiffPatch(new Options
+            {
+                ArrayDiff = ArrayDiffMode.Efficient,
+                TextDiff = TextDiffMode.Simple,
+                MinEfficientTextDiffLength = 0,
+            });
+
+            return GetDiff(localData == null ? new JObject() : JToken.Parse(localData), remoteData == null ? new JObject() : JToken.Parse(remoteData), tool).ToString(Formatting.None);
+        }
+
+        private static JToken GetDiff(JToken localData, JToken remoteData, JsonDiffPatch tool)
+        {
+            return tool.Diff(localData, remoteData);
         }
 
         /// <summary>
@@ -53,7 +77,12 @@ namespace ConflictManager.Backend.Services
         /// <returns>NULL if there aren't any differences. Otherwise returns the differencing parts between the two JSON objects.</returns>
         private static DifferenceDetails CompareData(string localData, string remoteData)
         {
-            return CompareData(localData == null ? JToken.Parse("{}") : JToken.Parse(localData), remoteData == null ? JToken.Parse("{}") : JToken.Parse(remoteData));
+            return CompareData(localData == null ? JToken.Parse("{}") : JToken.Parse(localData), remoteData == null ? JToken.Parse("{}") : JToken.Parse(remoteData), new Options
+            {
+                ArrayDiff = ArrayDiffMode.Simple,
+                TextDiff = TextDiffMode.Simple,
+                MinEfficientTextDiffLength = 0,
+            });
         }
 
         /// <summary>
@@ -63,21 +92,16 @@ namespace ConflictManager.Backend.Services
         /// <param name="localDbData">First JSON object</param>
         /// <param name="azureDbData">Second JSON object</param>
         /// <returns>NULL if there aren't any differences. Otherwise returns the differencing parts between the two JSON objects.</returns>
-        private static DifferenceDetails CompareData(JToken localDbData, JToken azureDbData)
+        private static DifferenceDetails CompareData(JToken localDbData, JToken azureDbData, Options opts)
         {
-            var tool = new JsonDiffPatch(new Options
-            {
-                ArrayDiff = ArrayDiffMode.Simple,
-                TextDiff = TextDiffMode.Simple,
-                MinEfficientTextDiffLength = 0,
-            });
+            var tool = new JsonDiffPatch(opts);
 
-            var diff = tool.Diff(localDbData, azureDbData);
-
-            if (diff == null) return null;
+            var diff = GetDiff(localDbData, azureDbData, tool);
 
             // diff != null -> diff(s) exist
+            if (diff == null) return null;
 
+            // Construct response object
             var details = new DifferenceDetails
             {
                 AzureOnlyProperties = new List<string>(),
@@ -89,7 +113,7 @@ namespace ConflictManager.Backend.Services
             };
 
             var diffs = ((JObject)diff).Properties().ToList();
-            Console.WriteLine($"\r\nDIFF PROPS:\r\n{(string.Join("\r\n", diffs))}");
+            //Console.WriteLine($"\r\nDIFF PROPS:\r\n{(string.Join("\r\n", diffs))}");
 
             // Diff Root = always object
             CompareObject(details, (JObject)diff);
@@ -105,19 +129,6 @@ namespace ConflictManager.Backend.Services
             {
                 // Process json objects in deeper level
                 // direct objects, objects inside lists
-
-                var y1 = prop.Path;
-                var y2 = prop.Values().FirstOrDefault()?.Path;
-                var x1 = prop.Name;
-                var x2 = prop.Value;
-                var x3 = prop.Type;
-                var x4 = prop.HasValues;
-                var x5 = prop.Value.First;
-                var x6 = prop.Value.Type;
-                var x7 = prop.Value.Values();
-                var x8 = prop.Count;
-                var x9 = prop.HasValues;
-                var x10 = prop.Children().ToList();
 
                 // Collect basic info from property
                 var path = prop.Path;
@@ -186,7 +197,8 @@ namespace ConflictManager.Backend.Services
                 else
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.Error.WriteLine("WENT ELSE");
+                    Console.WriteLine("ERROR: WENT ELSE -> diff case unhandled.");
+                    Console.Error.WriteLine("ERROR: WENT ELSE -> diff case unhandled.");
                 }
             }
         }

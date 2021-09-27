@@ -8,15 +8,30 @@ namespace ConflictManager.App.Models.Json
         {
         }
 
-        public override void DoSomethingWithTheData()
+        public override void DoSomethingWithTheData(int action)
         {
-            if (Data == null)
+            if (action == 1)
             {
-                Data = StaticDataService.Ship1;
+                if (Data == null)
+                {
+                    Data = StaticDataService.Ship1;
+                }
+                else
+                {
+                    Data.Engines.Add(StaticDataService.Eng1);
+                    Data.Engines.Add(StaticDataService.Te);
+                }
             }
-            else
+            else if (action == 2)
             {
-                Data.Engines.Add(StaticDataService.De);
+                if (Data == null)
+                {
+                    Data = StaticDataService.Ship1;
+                }
+                else
+                {
+                    Data.Engines.Add(StaticDataService.De);
+                }
             }
         }
     }

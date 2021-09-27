@@ -3,6 +3,7 @@ using ConflictManager.Backend.Models;
 using ConflictManager.Backend.Services;
 using Newtonsoft.Json;
 using System;
+using Newtonsoft.Json.Linq;
 
 namespace ConflictManager.Backend
 {
@@ -95,8 +96,8 @@ namespace ConflictManager.Backend
                     // Nothing changed, do nothing and return sync ok
                     resp.Response = "SYNC OK. No changed made in either endpoints.";
                 }
-
-                // TODO elseif More checks to verify changes
+                
+                // TODO More checks to verify if conflicts in place
 
                 else
                 {
@@ -126,6 +127,61 @@ namespace ConflictManager.Backend
             }
 
             return JsonConvert.SerializeObject(resp);
+        }
+
+        public static string ResolveConflict(string resolutionModel)
+        {
+            var model = JsonConvert.DeserializeObject<DataModel>(resolutionModel);
+
+            var inserted = RemoteDb.Upsert(model);
+
+            var resp = new ApiResponse
+            {
+                Status = Status.OK,
+                Response = JsonConvert.SerializeObject(inserted),
+            };
+
+            return JsonConvert.SerializeObject(resp);
+        }
+
+        public static void SomeoneElseModifyDataDuringOffline(int moduleId, string moduleType)
+        {
+            // Must be offline
+            if (_online) throw new ArgumentException("Must be in offline mode first.");
+
+            var latest = RemoteDb.Get(moduleId) ?? new DataModel
+            {
+                ModuleId = moduleId,
+            };
+
+            dynamic data = JsonConvert.DeserializeObject(latest.Data ?? "{}");
+
+            if (moduleType == "ShipModule")
+            {
+                if (data.Length == null)
+                {
+                    data.Length = 126.22;
+                }
+
+                data.Length = data.Length + 10.5;
+
+                if (data.Owner == null)
+                {
+                    data.Owner = new JObject();
+                }
+
+                data.Owner.Name = "Some other owner";
+            }
+            else
+            {
+                throw new ArgumentException("Unknown type. Cannot be handled.");
+            }
+
+            // Set the dynamic data property as stringified json
+            latest.Data = JsonConvert.SerializeObject(data);
+
+            // Insert as new (module or version)
+            RemoteDb.Upsert(latest);
         }
 
         /// <summary>
@@ -170,6 +226,29 @@ namespace ConflictManager.Backend
         {
             var ins = _online ? RemoteDb.Upsert(model) : LocalDb.Upsert(model);
             return ins;
+        }
+
+        public static string EfficientDiff(string model1)
+        {
+            var resp = new ApiResponse
+            {
+                Status = Status.CONFLICT,
+            };
+
+            var mod2 = RemoteDb.Get(1).Data;
+
+            var diff = SyncService.GetEffDiff(model1, mod2);
+
+            var syncResp = new SyncResponse
+            {
+                Status = Status.CONFLICT,
+                OriginalModel = model1,
+                IncomingModel = JsonConvert.SerializeObject(mod2),
+            };
+
+            resp.Response = JsonConvert.SerializeObject(syncResp);
+
+            return JsonConvert.SerializeObject(resp);
         }
     }
 }
