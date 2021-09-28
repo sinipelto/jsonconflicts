@@ -228,7 +228,7 @@ namespace ConflictManager.Backend
             return ins;
         }
 
-        public static string EfficientDiff(string model1)
+        public static string EfficientDiff(string incomingObj)
         {
             var resp = new ApiResponse
             {
@@ -237,13 +237,14 @@ namespace ConflictManager.Backend
 
             var mod2 = RemoteDb.Get(1).Data;
 
-            var diff = SyncService.GetEffDiff(model1, mod2);
+            var diff = SyncService.GetEffDiff(incomingObj, mod2);
 
             var syncResp = new SyncResponse
             {
                 Status = Status.CONFLICT,
-                OriginalModel = model1,
-                IncomingModel = JsonConvert.SerializeObject(mod2),
+                IncomingModel = incomingObj,
+                OriginalModel = mod2,
+                RawDiff = diff,
             };
 
             resp.Response = JsonConvert.SerializeObject(syncResp);

@@ -34,21 +34,121 @@ namespace ConflictManager.App
 
             var obj2 = StaticDataService.Ship1;
 
-            obj2.TransmissionCodes[1] = 991;
-            obj2.TransmissionCodes.Add(12938);
-            obj2.TransmissionCodes.RemoveAt(0);
+            obj2.Name = "Other FirstName Surname";
+            obj2.Length += 18345.32;
 
-            var respStr = BackendApi.EfficientDiff(JsonConvert.SerializeObject(obj2));
-            dynamic resp = JsonConvert.DeserializeObject(respStr);
+            // Arrays with different values + order
+            //obj2.TransmissionCodes.Add(obj2.TransmissionCodes[2]);
+            obj2.TransmissionCodes[1] = 9999999;
+            //obj2.TransmissionCodes.Add(12938);
+            //obj2.TransmissionCodes.RemoveAt(0);
+
+            obj2.Engines[1].Name = "Somee otherr engine";
+
+            var apiRespStr = BackendApi.EfficientDiff(JsonConvert.SerializeObject(obj2));
+            dynamic apiResp = JsonConvert.DeserializeObject(apiRespStr);
+
+            Console.WriteLine($"RESP Status: {apiResp.Status}");
+
+            var resp = JsonConvert.DeserializeObject(apiResp.Response.ToString());
 
             var inc = resp.IncomingModel;
             var orig = resp.OriginalModel;
+            var diffStr = resp.RawDiff.ToString();
 
-            var diffStr = resp.Diff;
             var diff = JsonConvert.DeserializeObject(diffStr);
 
-            Console.WriteLine(diffStr);
-            Console.WriteLine(diff[0]);
+            Console.WriteLine($"Diff Object: {diff}");
+
+            if (string.IsNullOrWhiteSpace(diff.ToString()))
+            {
+                Console.WriteLine("No diffs detected.");
+                return;
+            }
+
+            var props = ((JObject)diff).Properties();
+
+            foreach (var prop in props)
+            {
+                var path = prop.Path;
+                var type = prop.Type; // == JProperty (always)
+                var value = prop.Value; // == String / Array / Object
+
+                // If { "prop": {...}, ... }
+                if (value.Type == JTokenType.Object)
+                {
+                    var valueObj = (JObject)value;
+
+                    // If { "prop": { "_t": "a", ... }, ... } => is array, with diffing values/value properties
+                    var isDiffArray = valueObj.ContainsKey("_t") && valueObj.Value<string>("_t") == "a";
+                    if (!valueObj.Remove("_t")) throw new Exception("Was not removed.");
+                    if (isDiffArray)
+                    {
+                        Console.WriteLine($"Property '{path}' is array, with partial diff(s) in its values.");
+
+                        foreach (var valueProp in valueObj.Properties())
+                        {
+                            var valuePath = valueProp.Path;
+
+                            // If { "prop": { "_t": "a", "_NUM": ... , "NUM": ..., ... }, ... } => _NUM and NUM existing means the value was changed
+                            if (valueProp.Name[0] == '_' && valueObj.ContainsKey(valueProp.Name[1..]))
+                            {
+                                Console.WriteLine($"For this array {path} with primitive types only, {valueProp.Name[1..]}. value has been CHANGED.");
+
+                                // If { "prop": { "_t": "a", "_NUM": [ ... ], "NUM": [ ... ], ... }, ... } => _NUM means the value changed is primitive type (not array, object)
+                                if (valueProp.Value.Type == JTokenType.Array)
+                                {
+                                    Console.WriteLine($"For array {path}, {valueProp.Name[1..]} th value has been REMOVED.");
+
+                                    var arrVal = (JArray)valueProp.Value;
+
+                                    // If { "prop": { "_t": "a", "_NUM": [ X, 0, 0 ], ... }, ... } => _NUM means the value is simple type
+                                    if (arrVal.Count == 3 && arrVal[1] == arrVal[2] && arrVal[2].Value<int>() == 0)
+                                    {
+                                        Console.WriteLine("Property was not set in left, but set in right.");
+                                        Console.WriteLine($"New Value: {arrVal[0]}");
+                                    }
+
+                                    else if (arrVal.Count == 1)
+                                    {
+                                        Console.WriteLine($"Value: {arrVal}");
+                                    }
+                                }
+
+                                // If { "prop": { "_t": "a", "_NUM": { ... }, "NUM": { ... }, ... }, ... } => _NUM and NUM being objects mean properties inside these values have changed
+                                else if (valueProp.Value.Type == JTokenType.Object)
+                                {
+                                    Console.WriteLine($"For array {path}, {valueProp.Name[1..]} th value is object and its property/properties value(s) have changed.");
+                                }
+
+                            }
+
+                            // If { "prop": { "_t": "a", "_NUM": ... , ... } ... } => _NUM means the value is removed in the right
+                            else if (valueProp.Name[0] == '_')
+                            {
+                                Console.WriteLine($"Property {path}: Existing in left, missing in the right");
+                            }
+
+                            // If { "prop": { "_t": "a", "NUM": ..., ... }, ... } => NUM means the value is missing in the left, added in the right
+                            else
+                            {
+                                Console.WriteLine($"Property {path}: Missing in the left, added in right.");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("UNKNOWN!");
+                    }
+                }
+
+                // If { "prop": [...] } => Property changed is primive type
+                if (value.Type == JTokenType.Array)
+                {
+                    var valueArr = (JArray)value;
+                }
+            }
         }
 
         private static void Scenario1()
