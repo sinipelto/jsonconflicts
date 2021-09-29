@@ -70,7 +70,7 @@ namespace ConflictManager.Backend.Services
 
         private static JToken GetDiff(JToken localData, JToken remoteData, JsonDiffPatch tool)
         {
-            return tool.Diff(localData, remoteData);
+            return tool.Diff(remoteData, localData);
         }
 
         /// <summary>

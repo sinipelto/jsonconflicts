@@ -71,20 +71,24 @@ namespace ConflictManager.App
             foreach (var prop in props)
             {
                 var path = prop.Path;
-                var type = prop.Type; // == JProperty (always)
+                //var type = prop.Type; // == JProperty (always)
                 var value = prop.Value; // == String / Array / Object
+                var valueType = value.Type;
 
                 // If { "prop": {...}, ... }
-                if (value.Type == JTokenType.Object)
+                if (valueType == JTokenType.Object)
                 {
+                    // Get property value as JSON object
                     var valueObj = (JObject)value;
 
-                    // If { "prop": { "_t": "a", ... }, ... } => is array, with diffing values/value properties
+                    // Process diff array status
                     var isDiffArray = valueObj.ContainsKey("_t") && valueObj.Value<string>("_t") == "a";
                     if (!valueObj.Remove("_t")) throw new Exception("Was not removed.");
+
+                    // If { "prop": { "_t": "a", ... }, ... } => is array, with diffing values/value properties
                     if (isDiffArray)
                     {
-                        Console.WriteLine($"Property '{path}' is array, with partial diff(s) in its values.");
+                        Console.WriteLine($"Property '{path}' is an array, with partial diff(s) in its values.");
 
                         foreach (var valueProp in valueObj.Properties())
                         {
@@ -93,68 +97,166 @@ namespace ConflictManager.App
                             var valueValueType = valueValue.Type;
 
                             // If { "prop": { "_t": "a", "_NUM": ... , "NUM": ..., ... }, ... } => _NUM and NUM existing means the value was (possibly) CHANGED
-                            if (valueName[0] == '_' && valueObj.ContainsKey(valueName[1..]))
+                            // Catch both _NUM, NUM and NUM, _NUM
+                            if ((valueName[0] == '_' && valueObj.ContainsKey(valueName[1..])) || (valueObj.ContainsKey(valueName) && valueObj.ContainsKey("_" + valueName)))
                             {
-                                Console.WriteLine($"For this array {path} with primitive types only, {valueName[1..]}. value has been CHANGED.");
+                                // Prevent handling same pair twice
+                                if (valueName[0] != '_') continue;
+
+                                Console.WriteLine($"For this array '{path}', value at [{valueName[1..]}] has been CHANGED.");
 
                                 // If { "prop": { "_t": "a", "_NUM": [ ... ], "NUM": [ ... ], ... }, ... } => _/NUM = [] means the value changed is primitive type (not array, object)
                                 if (valueValueType == JTokenType.Array)
                                 {
-                                    Console.WriteLine($"For array {path}, {valueProp.Name[1..]} th value has been REMOVED.");
+                                    Console.WriteLine($"For this array '{path}', having primitive types only, value at [{valueProp.Name[1..]}] has been CHANGED.");
 
-                                    var arrVal = (JArray)valueProp.Value;
+                                    // prop: { ..., "_NUM: [ 0: .. ], ... }, ..."
+                                    var oldVal = valueObj[valueName][0];
 
-                                    // If { "prop": { "_t": "a", "_NUM": [ X, 0, 0 ], ... }, ... } => _NUM means the value is simple type
-                                    if (arrVal.Count == 3 && arrVal[1] == arrVal[2] && arrVal[2].Value<int>() == 0)
-                                    {
-                                        Console.WriteLine("Property was not set in left, but set in right.");
-                                        Console.WriteLine($"New Value: {arrVal[0]}");
-                                    }
+                                    // prop: { ..., "NUM: [ 0: .. ], ... }, ..."
+                                    var newVal = valueObj[valueName[1..]][0];
 
-                                    else if (arrVal.Count == 1)
-                                    {
-                                        Console.WriteLine($"Value: {arrVal}");
-                                    }
+                                    Console.WriteLine($"Old value was: '{oldVal}'. New value is: '{newVal}'.");
+
+                                    //// If { "prop": { "_t": "a", "_NUM": [ X, 0, 0 ], ... }, ... } => _NUM means the value is simple type
+                                    //if (arrVal.Count == 3 && arrVal[1] == arrVal[2] && arrVal[2].Value<int>() == 0)
+                                    //{
+                                    //    Console.WriteLine("Property was not set in left, but set in right.");
+                                    //    Console.WriteLine($"New Value: {arrVal[0]}");
+                                    //}
+
+                                    //else if (arrVal.Count == 1)
+                                    //{
+                                    //    Console.WriteLine($"Value: {arrVal}");
+                                    //}
                                 }
 
                                 // If { "prop": { "_t": "a", "_NUM": { ... }, "NUM": { ... }, ... }, ... } => _NUM and NUM being objects mean properties inside these values have changed
                                 else if (valueValueType == JTokenType.Object)
                                 {
-                                    Console.WriteLine($"For array {path}, {valueProp.Name[1..]} th value is object and its property/properties value(s) have changed.");
+                                    Console.WriteLine($"For array '{path}' containing complex objects, value at [{valueProp.Name[1..]}] property/properties value(s) have CHANGED.");
+
+                                    
                                 }
 
                                 else
                                 {
                                     Console.ForegroundColor = ConsoleColor.Red;
-                                    Console.WriteLine("UNHANDLED!");
+                                    Console.WriteLine("UNHANDLED CASE!");
                                 }
-
                             }
 
                             // If { "prop": { "_t": "a", "_NUM": ... , ... } ... } => _NUM means the value is missing in the right
                             else if (valueProp.Name[0] == '_')
                             {
-                                Console.WriteLine($"Property {path}: Existing in left, missing in the right");
+                                Console.WriteLine($"Property that is an array '{path}': Value at [{valueName[1..]}] is existing in original, missing in the new (= REMOVED)");
+
+                                // If { "prop": { "_t": "a", "_NUM": [ ... ], ... }, ... } => NUM = [] means the value REMOVED is primitive type (is not array or object)
+                                if (valueValueType == JTokenType.Array)
+                                {
+                                    Console.WriteLine($"For this array '{path}', having primitive types only, value at [{valueProp.Name[1..]}] has been REMOVED.");
+
+                                    // prop: { ..., "_NUM: [ 0: .. ], ... }, ..."
+                                    var oldVal = valueValue[0];
+
+                                    // prop: { ..., "NUM: [ 0: .. ], ... }, ..."
+                                    var newVal = valueValue[1];
+
+                                    Console.WriteLine($"Old value was: '{oldVal}'.");
+                                }
+
+                                // If { "prop": { "_t": "a", "_NUM": { ... }, ... }, ... } => _NUM and NUM being objects mean properties inside these values have changed
+                                else if (valueValueType == JTokenType.Object)
+                                {
+                                    Console.WriteLine($"For array '{path}', value at [{valueProp.Name[1..]}] is an object and its property/properties value(s) have been REMOVED.");
+                                }
+
+                                else
+                                {
+                                    Console.ForegroundColor = ConsoleColor.Red;
+                                    Console.WriteLine("UNHANDLED CASE!");
+                                }
                             }
 
                             // If { "prop": { "_t": "a", "NUM": ..., ... }, ... } => NUM means the value is missing in the left, added in the right
                             else
                             {
-                                Console.WriteLine($"Property {path}: Missing in the left, added in right.");
+                                Console.WriteLine($"Property '{path}' that is an array: Value at [{valueName}] has been ADDED.");
+
+                                Console.WriteLine($"Property that is an array '{path}': Value at [{valueName}] is missing in original, existing in the new (= ADDED)");
+
+                                // If { "prop": { "_t": "a", "NUM": [ ... ], ... }, ... } => NUM = [] means the value ADDED is primitive type (is not array or object)
+                                if (valueValueType == JTokenType.Array)
+                                {
+                                    Console.WriteLine($"For this array '{path}', having primitive types only, value at [{valueName}] has been ADDED.");
+
+                                    // prop: { ..., "_NUM: [ 0: .. ], ... }, ..."
+                                    var oldVal = valueValue[0];
+
+                                    // prop: { ..., "NUM: [ 0: .. ], ... }, ..."
+                                    var newVal = valueValue[1];
+
+                                    Console.WriteLine($"Old value was: '{oldVal}'.");
+                                }
+
+                                // If { "prop": { "_t": "a", "_NUM": { ... }, ... }, ... } => _NUM and NUM being objects mean properties inside these values have changed
+                                else if (valueValueType == JTokenType.Object)
+                                {
+                                    Console.WriteLine($"For array '{path}', value at [{valueName}] is an object and its property/properties value(s) have been ADDED.");
+                                }
+
+                                else
+                                {
+                                    Console.ForegroundColor = ConsoleColor.Red;
+                                    Console.WriteLine("UNHANDLED CASE!");
+                                }
                             }
                         }
                     }
+
+                    // Property value does NOT contain "_t": "a" -> is not an array but object
+                    // If { "prop": { ... }, ... } => Property was complex type and its properties were changed
                     else
                     {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("UNHANDLED!!");
+                        Console.WriteLine($"Property '{path}' that is an object, its propterty/properties value(s) were CHANGED.");
+
+                        // Get property value as JSON object
+                        var objValue = (JObject)value;
+
+                        foreach (var objProp in objValue.Properties())
+                        {
+                            var valueName = objProp.Name;
+                            var valueValue = objProp.Value;
+                            var valueValueType = valueValue.Type;
+
+                            Console.WriteLine($"For object '{path}', property '{valueName}' was CHANGED.");
+
+                            // If { "prop": { "subProp": [ ... ], ... }, ... } => Property was complex type and its property, containing simple type, was CHANGED
+                            if (valueValueType == JTokenType.Array)
+                            {
+                                Console.WriteLine($"For object '{path}', containing only simple values, property '{valueName}' value was CHANGED.");
+                                
+                                Console.WriteLine($"Old value was: '{valueValue[0]}'. New value is '{valueValue[1]}'.");
+                            }
+
+                            // If { "prop": { "subProp": { ... }, ... }, ... } => Property was complex type and its property, containing simple type, was CHANGED
+                            else if (valueValueType == JTokenType.Object)
+                            {
+                                Console.WriteLine($"For object '{path}', containing only simple values, property '{valueName}' value was CHANGED.");
+
+                            }
+
+                        }
                     }
                 }
 
-                // If { "prop": [...] } => Property changed is primive type
-                if (value.Type == JTokenType.Array)
+                // If { "prop": [ ... ], ... } => Property value is primitive type and was changed
+                else if (valueType == JTokenType.Array)
                 {
                     var valueArr = (JArray)value;
+
+                    Console.WriteLine($"Property {path} was a simple type, its value been CHANGED.");
+                    Console.WriteLine($"Old value was: {valueArr[0]}. New value is: {valueArr[1]}");
                 }
             }
         }
