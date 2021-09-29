@@ -78,17 +78,6 @@ namespace ConflictManager.App.Services
             CompanyDetails = Cdet,
         };
 
-        public static PassengerShip Ship1 => new()
-        {
-            Name = "Test Ship 128",
-            Length = 60.15,
-            Engines = new List<Engine> { Eng1, Eng2, De },
-            Companions = null,
-            Owner = Ow1,
-            PassengerCountMax = 572,
-            TransmissionCodes = new List<int> { 282, 123897, 21487, 161 }
-        };
-
         public static Container Cont => new()
         {
             Contents = "Laptops",
@@ -101,6 +90,16 @@ namespace ConflictManager.App.Services
             WeightUnit = "Kilograms",
             Type = "Consumer Electronics",
             Containers = new List<Container> { Cont }
+        };
+        public static PassengerShip Ship1 => new()
+        {
+            Name = "Test Ship 128",
+            Length = 60.15,
+            Engines = new List<Engine> { Eng1, Eng2, De },
+            Companions = null,
+            Owner = Ow1,
+            PassengerCountMax = 572,
+            TransmissionCodes = new List<int> { 282, 123897, 21487, 161, 1728 }
         };
 
         public static CargoShip Ship2 => new()

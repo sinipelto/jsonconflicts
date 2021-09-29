@@ -16,7 +16,7 @@ namespace ConflictManager.App
             // The application starts
             Console.WriteLine("##### START #####");
 
-            //Scenario1();
+            //Scenario1();d
             Scenario2();
         }
 
@@ -41,7 +41,7 @@ namespace ConflictManager.App
             //obj2.TransmissionCodes.Add(obj2.TransmissionCodes[2]);
             obj2.TransmissionCodes[1] = 9999999;
             //obj2.TransmissionCodes.Add(12938);
-            //obj2.TransmissionCodes.RemoveAt(0);
+            obj2.TransmissionCodes.RemoveAt(3);
 
             obj2.Engines[1].Name = "Somee otherr engine";
 
@@ -88,15 +88,17 @@ namespace ConflictManager.App
 
                         foreach (var valueProp in valueObj.Properties())
                         {
-                            var valuePath = valueProp.Path;
+                            var valueName = valueProp.Name;
+                            var valueValue = valueProp.Value;
+                            var valueValueType = valueValue.Type;
 
-                            // If { "prop": { "_t": "a", "_NUM": ... , "NUM": ..., ... }, ... } => _NUM and NUM existing means the value was changed
-                            if (valueProp.Name[0] == '_' && valueObj.ContainsKey(valueProp.Name[1..]))
+                            // If { "prop": { "_t": "a", "_NUM": ... , "NUM": ..., ... }, ... } => _NUM and NUM existing means the value was (possibly) CHANGED
+                            if (valueName[0] == '_' && valueObj.ContainsKey(valueName[1..]))
                             {
-                                Console.WriteLine($"For this array {path} with primitive types only, {valueProp.Name[1..]}. value has been CHANGED.");
+                                Console.WriteLine($"For this array {path} with primitive types only, {valueName[1..]}. value has been CHANGED.");
 
-                                // If { "prop": { "_t": "a", "_NUM": [ ... ], "NUM": [ ... ], ... }, ... } => _NUM means the value changed is primitive type (not array, object)
-                                if (valueProp.Value.Type == JTokenType.Array)
+                                // If { "prop": { "_t": "a", "_NUM": [ ... ], "NUM": [ ... ], ... }, ... } => _/NUM = [] means the value changed is primitive type (not array, object)
+                                if (valueValueType == JTokenType.Array)
                                 {
                                     Console.WriteLine($"For array {path}, {valueProp.Name[1..]} th value has been REMOVED.");
 
@@ -116,14 +118,20 @@ namespace ConflictManager.App
                                 }
 
                                 // If { "prop": { "_t": "a", "_NUM": { ... }, "NUM": { ... }, ... }, ... } => _NUM and NUM being objects mean properties inside these values have changed
-                                else if (valueProp.Value.Type == JTokenType.Object)
+                                else if (valueValueType == JTokenType.Object)
                                 {
                                     Console.WriteLine($"For array {path}, {valueProp.Name[1..]} th value is object and its property/properties value(s) have changed.");
                                 }
 
+                                else
+                                {
+                                    Console.ForegroundColor = ConsoleColor.Red;
+                                    Console.WriteLine("UNHANDLED!");
+                                }
+
                             }
 
-                            // If { "prop": { "_t": "a", "_NUM": ... , ... } ... } => _NUM means the value is removed in the right
+                            // If { "prop": { "_t": "a", "_NUM": ... , ... } ... } => _NUM means the value is missing in the right
                             else if (valueProp.Name[0] == '_')
                             {
                                 Console.WriteLine($"Property {path}: Existing in left, missing in the right");
@@ -139,7 +147,7 @@ namespace ConflictManager.App
                     else
                     {
                         Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("UNKNOWN!");
+                        Console.WriteLine("UNHANDLED!!");
                     }
                 }
 

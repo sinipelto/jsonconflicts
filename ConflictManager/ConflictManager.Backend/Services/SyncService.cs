@@ -61,7 +61,11 @@ namespace ConflictManager.Backend.Services
                 MinEfficientTextDiffLength = 0,
             });
 
-            return GetDiff(localData == null ? new JObject() : JToken.Parse(localData), remoteData == null ? new JObject() : JToken.Parse(remoteData), tool).ToString(Formatting.None);
+            var localJson = localData == null ? new JObject() : JToken.Parse(localData);
+            var remoteJson = remoteData == null ? new JObject() : JToken.Parse(remoteData);
+
+            return GetDiff(localJson, remoteJson, tool)
+                .ToString(Formatting.None);
         }
 
         private static JToken GetDiff(JToken localData, JToken remoteData, JsonDiffPatch tool)
