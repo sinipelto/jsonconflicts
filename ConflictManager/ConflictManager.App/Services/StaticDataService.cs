@@ -96,7 +96,7 @@ namespace ConflictManager.App.Services
             Name = "Test Ship 128",
             Length = 60.15,
             Engines = new List<Engine> { Eng1, Eng2, De },
-            Companions = null,
+            //Companions = null,
             Owner = Ow1,
             PassengerCountMax = 572,
             TransmissionCodes = new List<int> { 282, 123897, 21487, 161, 1728 }
@@ -106,8 +106,8 @@ namespace ConflictManager.App.Services
         {
             Name = "Test Ship 14",
             Length = 53.3,
-            Engines = new List<Engine> { Eng2, Eng1, De },
-            Companions = new List<Ship> { Ship1 },
+            Engines = new List<Engine> { Eng2, Eng1 },
+            //Companions = new List<Ship> { Ship1 },
             Owner = Ow2,
             Cargo = Cargo,
             ContainersCountLimit = 1339,
